@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# packaging / test artifacts
+.pytest_cache/
+tests/*.pdf
+tests/_raw_*.xml
+tests/real/*.pdf
+tests/real/_raw_*.xml
+xfa_datasets.xml

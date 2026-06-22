@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xfa-extract"
+dynamic = ["version"]
+description = "Read entered values out of XFA / LiveCycle 'dynamic' PDF forms (IRCC and other government forms) that standard PDF field extraction misses."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Ryan Kashtan" }]
+keywords = [
+    "xfa", "pdf", "livecycle", "acroform", "forms", "form-data",
+    "ircc", "immigration", "pypdf", "datasets", "extraction", "dynamic-pdf",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Office/Business",
+    "Topic :: Text Processing :: Markup :: XML",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "pypdf>=4.0",
+    "lxml>=5.0",
+]
+
+[project.optional-dependencies]
+robust = ["pikepdf>=8.0"]              # robust object/stream fallback for unusual PDFs
+test = ["pytest>=7", "pikepdf>=8.0"]   # pikepdf is needed to build the test fixtures
+
+[project.urls]
+Homepage = "https://github.com/ryanjkashtan/xfa-extract"
+Issues = "https://github.com/ryanjkashtan/xfa-extract/issues"
+
+[project.scripts]
+xfa-extract = "xfa_extract.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "xfa_extract.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
