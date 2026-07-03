@@ -8,6 +8,8 @@ Builds, in this directory:
   no_form.pdf          — a page with no /AcroForm at all                             -> exit 2
   empty_xfa.pdf        — XFA datasets present but every value blank                  -> exit 3
   corrupt_xfa.pdf      — XFA datasets stream that is not parseable XML               -> exit 4
+  templated_xfa.pdf    — XFA array form WITH a template packet (choice/checkbox/
+                         radio/date/scripted fields) — exercises xfa_extract.template
 
 These are stand-ins for a real filled IRCC form (Ryan to supply). Requires pikepdf.
 """
@@ -69,6 +71,53 @@ DATASETS_EMPTY = b"""<?xml version="1.0" encoding="UTF-8"?>
 # Binary noise: lxml's recover mode finds no usable root -> exit 4.
 DATASETS_CORRUPT = b"\x00\x01\x02\x03 not xml at all <<< \xff\xfe garbage"
 
+# A real-shaped template packet (modelled on IRCC CIT0001 structure): a dropdown with paired
+# display/export items lists, a single checkbox with an on-value, a radio exclGroup, a date
+# field with a picture clause, and a text field with an exit-event script.
+TEMPLATE_RICH = b"""<template xmlns="http://www.xfa.org/schema/xfa-template/3.3/">
+  <subform name="form1">
+    <field name="country">
+      <ui><choiceList/></ui>
+      <caption><value><text>Country of birth</text></value></caption>
+      <items><text>Canada</text><text>Other</text></items>
+      <items save="1" presence="hidden"><text>1</text><text>2</text></items>
+    </field>
+    <field name="agree">
+      <ui><checkButton mark="check"/></ui>
+      <caption><value><text>I agree to the terms</text></value></caption>
+      <items><text>Y</text></items>
+    </field>
+    <exclGroup name="sex">
+      <field name="male"><ui><checkButton/></ui>
+        <caption><value><text>Male</text></value></caption>
+        <items><text>M</text></items></field>
+      <field name="female"><ui><checkButton/></ui>
+        <caption><value><text>Female</text></value></caption>
+        <items><text>F</text></items></field>
+    </exclGroup>
+    <field name="dob">
+      <ui><dateTimeEdit/></ui>
+      <caption><value><text>Date of birth (YYYY-MM-DD)</text></value></caption>
+      <format><picture>date{YYYY-MM-DD}</picture></format>
+    </field>
+    <field name="notes">
+      <ui><textEdit/></ui>
+      <event activity="exit" name="event__exit">
+        <script contentType="application/x-javascript">xfa.host.messageBox("bye")</script>
+      </event>
+    </field>
+  </subform>
+</template>"""
+
+DATASETS_TEMPLATED = b"""<?xml version="1.0" encoding="UTF-8"?>
+<xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/">
+  <xfa:data>
+    <form1>
+      <country>1</country><agree></agree><sex></sex><dob></dob><notes></notes>
+    </form1>
+  </xfa:data>
+</xfa:datasets>"""
+
 
 def _xfa_array_pdf(path: Path, datasets: bytes, with_extra_packets: bool = True) -> None:
     pdf = pikepdf.Pdf.new()
@@ -116,6 +165,19 @@ def _no_form_pdf(path: Path) -> None:
     pdf.close()
 
 
+def _templated_xfa_pdf(path: Path) -> None:
+    """XFA array form with a REAL template packet (choice/checkbox/radio/date/scripted)."""
+    pdf = pikepdf.Pdf.new()
+    pdf.add_blank_page(page_size=(612, 792))
+    entries = [
+        String("template"), pdf.make_stream(TEMPLATE_RICH),
+        String("datasets"), pdf.make_stream(DATASETS_TEMPLATED),
+    ]
+    pdf.Root.AcroForm = pdf.make_indirect(Dictionary(XFA=Array(entries), Fields=Array([])))
+    pdf.save(path)
+    pdf.close()
+
+
 def main() -> None:
     _xfa_array_pdf(HERE / "filled_xfa.pdf", DATASETS_FILLED)
     _xdp_single_stream_pdf(HERE / "filled_xdp.pdf", XDP_FILLED)
@@ -123,8 +185,9 @@ def main() -> None:
     _no_form_pdf(HERE / "no_form.pdf")
     _xfa_array_pdf(HERE / "empty_xfa.pdf", DATASETS_EMPTY, with_extra_packets=False)
     _xfa_array_pdf(HERE / "corrupt_xfa.pdf", DATASETS_CORRUPT, with_extra_packets=False)
+    _templated_xfa_pdf(HERE / "templated_xfa.pdf")
     for name in ("filled_xfa", "filled_xdp", "filled_acroform", "no_form",
-                 "empty_xfa", "corrupt_xfa"):
+                 "empty_xfa", "corrupt_xfa", "templated_xfa"):
         print(f"wrote {name}.pdf")
 
 

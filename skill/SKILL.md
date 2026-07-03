@@ -84,9 +84,11 @@ is a repeating section (multiple dependents/applicants). `flat` renders repeats 
 
 ## Notes / gotchas
 
-- **Checkbox & radio values are surfaced raw** (often the export value or `1`/`0`).
-  Interpreting them into human captions needs the `template` packet — out of scope for v1;
-  see `REFERENCE.md`.
+- **Checkbox & radio values are surfaced raw** (often the export value or `1`/`0`). To
+  interpret them, parse the form's `template` packet with the library API:
+  `from xfa_extract import parse_template, schema_for` — the returned schema maps each field
+  to its kind, human caption, and choice export↔display pairs (e.g. `"1"` ↔ `"Canada"`).
+  See `REFERENCE.md` §4.
 - **Hybrid forms** (both `/V` and `/XFA` populated): the **XFA datasets packet is
   authoritative** — that's what this skill reads.
 - **Former-XFA forms exported to AcroForm.** Some filled IRCC forms come back as

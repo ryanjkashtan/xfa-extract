@@ -22,8 +22,14 @@ import argparse
 import json
 import sys
 
-# The xfa-data namespace URI is fixed by the XFA spec; match on it exactly.
-XFA_DATA_NS = "http://www.xfa.org/schema/xfa-data/1.0/"
+# Aliased for back-compat: external code (xfa-fill <= 0.1) imported these private names
+# from this module before they were promoted to the public xmlutil API in 0.2.0.
+from .xmlutil import (  # noqa: F401
+    XFA_DATA_NS,
+    find_data_element as _find_data_element,
+    localname as _localname,
+    namespace as _namespace,
+)
 
 # Guard against pathological nesting (§4.10) — real forms are nowhere near this deep.
 MAX_DEPTH = 400
@@ -139,37 +145,8 @@ def locate_datasets(pdf_path: str):
 
 # --------------------------------------------------------------------------------------
 # Parsing datasets XML -> field map
+# (XML helpers _localname/_namespace/_find_data_element live in xmlutil, imported above)
 # --------------------------------------------------------------------------------------
-
-def _localname(el) -> "str | None":
-    tag = el.tag
-    if not isinstance(tag, str):
-        return None  # comment / processing-instruction
-    return tag.split("}", 1)[1] if tag.startswith("{") else tag
-
-
-def _namespace(el) -> "str | None":
-    tag = el.tag
-    if isinstance(tag, str) and tag.startswith("{"):
-        return tag[1:].split("}", 1)[0]
-    return None
-
-
-def _find_data_element(root):
-    """Find the <xfa:data> container regardless of whether we were handed a bare
-    datasets packet or a whole XDP document (refinement #2)."""
-    for el in root.iter():
-        if _localname(el) == "data" and _namespace(el) == XFA_DATA_NS:
-            return el
-    for el in root.iter():
-        if _localname(el) == "data":
-            return el
-    if _localname(root) == "datasets":
-        return root  # no explicit <data> — treat datasets children as data
-    if _localname(root) not in ("xdp", "template", "config"):
-        return root  # someone handed us the data subtree directly
-    return None
-
 
 def element_to_node(el, depth: int = 0):
     """str for a leaf, dict for a group, list when a tag repeats under one parent."""

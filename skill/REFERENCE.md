@@ -85,8 +85,13 @@ The datasets packet stores **data values, not human captions**. A checkbox surfa
 *export value* (e.g. `1`, `0`, `Yes`, an option code) — not the question text. Mapping
 `form1.Section8.Parent1.Surname` → "Applicant surname", or a radio's `1` → "Married",
 requires the **`template`** packet, which holds the field captions and bind definitions.
-That caption enrichment is a stretch goal (BUILD §9), intentionally not done in v1: the skill
-surfaces raw values faithfully and notes that interpretation may need the template.
+
+Since 0.2.0 the package parses that packet: `parse_template(pdf)` returns
+`{som_path: Field}` where each `Field` carries `kind` (text/checkbox/radio/choice/date/…),
+`caption`, `choices` (export↔display pairs), `picture` (format mask), and `scripts`
+(calculate/validate/event flags); `schema_for(schema, datasets_path)` looks up a field from a
+datasets path by stripping its `[n]` repeat indices. The datasets views still surface raw
+values faithfully — the schema is how you interpret them.
 
 ## 5. Edge cases the parser handles (BUILD §4)
 

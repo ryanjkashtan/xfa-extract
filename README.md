@@ -69,6 +69,28 @@ if kind == "xfa" and datasets:
     print(flat["form1.PersonalInfo.Surname"])   # -> "Smith"
 ```
 
+### Understand the form's schema, not just its values
+
+XFA forms also carry a **template** packet — the form's intelligence. `parse_template()`
+turns it into a per-field schema: field kind, the human caption, a dropdown/radio's valid
+values (export code ↔ display label), the expected format, and whether the field runs
+scripts:
+
+```python
+from xfa_extract import parse_template, schema_for
+
+schema = parse_template("FORM.pdf")
+f = schema_for(schema, "form1.PersonalInfo.Country")
+f.kind        # "choice"
+f.caption     # "Country of birth or territory"
+f.choices     # [("1", "Canada"), ("2", "Other")]  — datasets stores the export code
+f.picture     # e.g. "date{YYYY-MM-DD}" on date fields
+f.scripted    # True if the field has calculate/validate/event scripts
+```
+
+This is what lets a filler (see [`xfa-fill`](https://github.com/ryanjkashtan/xfa-fill))
+accept `"Canada"` and write the `"1"` the form actually stores.
+
 ## Exit codes (the CLI tells you which case you're in)
 
 | code | meaning | what to do |
@@ -84,12 +106,13 @@ Validated on synthetic fixtures (in CI) **and** 14 real-world XFA forms — IRCC
 1295 / 1344 / 5710 / 5669, a DHL waybill, an Indian MCA MGT-7, an Ontario lease, a US DOL
 form, French CERFA — plus a real filled Canadian Proof-of-Citizenship application. Repeating
 sections, namespaces, Adobe's quirky tag serialization, and base64-image-bearing datasets all
-handled. See [`docs/xfa-internals.md`](docs/xfa-internals.md) for the deep dive.
+handled. See [`skill/REFERENCE.md`](skill/REFERENCE.md) for the deep dive.
 
 ## What it does **not** do
 
-- **Fill / write** values into XFA forms — fragile, and the failure mode on a legal document
-  is bad. (Use a dedicated form-filling tool.)
+- **Fill / write** values into XFA forms — that's the job of the companion package
+  [`xfa-fill`](https://github.com/ryanjkashtan/xfa-fill), which uses this package's template
+  schema and read-back verification.
 - **Flatten / render** XFA to static pages — different operation.
 - **OCR** — these are digital forms, not scans.
 
